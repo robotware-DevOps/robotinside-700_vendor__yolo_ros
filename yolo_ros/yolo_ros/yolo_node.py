@@ -451,6 +451,7 @@ class YoloNode(LifecycleNode):
                 agnostic_nms=self.agnostic_nms,
                 retina_masks=self.retina_masks,
                 device=self.device,
+                classes=[64] # class 지정
             )
             results: Results = results[0].cpu()
 
