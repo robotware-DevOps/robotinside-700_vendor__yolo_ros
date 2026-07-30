@@ -451,7 +451,8 @@ class YoloNode(LifecycleNode):
                 agnostic_nms=self.agnostic_nms,
                 retina_masks=self.retina_masks,
                 device=self.device,
-                classes=[64] # class 지정
+                classes=[2],  # ← robot_view_v3.pt: egg=2 만 검출 (chicken=0/dead_chicken=1 제외).
+                #                 ★ 임시 하드코딩. best.pt(계란 단일)로 되돌릴 땐 이 줄 삭제/주석.
             )
             results: Results = results[0].cpu()
 
