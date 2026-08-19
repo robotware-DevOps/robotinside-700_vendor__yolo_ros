@@ -452,6 +452,8 @@ class YoloNode(LifecycleNode):
                 agnostic_nms=self.agnostic_nms,
                 retina_masks=self.retina_masks,
                 device=self.device,
+                classes=[1, 2],  # ← dead_chicken=1(죽은닭) + egg=2(계란)만. live chicken=0 제외.
+                #                    전부: classes=[0, 1, 2] / 계란만: classes=[2].
             )
             results: Results = results[0].cpu()
 
