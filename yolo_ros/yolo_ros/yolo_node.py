@@ -80,6 +80,13 @@ class YoloNode(LifecycleNode):
         self.declare_parameter("augment", False)
         self.declare_parameter("agnostic_nms", False)
         self.declare_parameter("retina_masks", False)
+        # predict() 에 넘길 클래스 필터. 빈 리스트 = 필터 없음(모델 전체 클래스).
+        # 과거 여기에 classes=[64](COCO mouse) 가 하드코딩되어 커스텀 모델이
+        # 통째로 차단된 적이 있다. 모델마다 인덱스가 다르므로 **반드시 런치에서
+        # 지정**하고, 코드에 숫자를 박지 않는다.
+        #   robot_view_v3.pt : chicken=0, dead_chicken=1, egg=2
+        #   best.pt          : egg 단일 클래스 → egg=0
+        self.declare_parameter("target_classes", [2])
 
         self.type_to_model = {"YOLO": YOLO, "World": YOLOWorld, "YOLOE": YOLOE}
 
@@ -117,6 +124,14 @@ class YoloNode(LifecycleNode):
         )
         self.imgsz_width = (
             self.get_parameter("imgsz_width").get_parameter_value().integer_value
+        )
+        # 빈 리스트면 None 으로 넘겨 ultralytics 기본(전체 클래스) 동작을 쓴다.
+        _tc = list(
+            self.get_parameter("target_classes").get_parameter_value().integer_array_value
+        )
+        self.target_classes = [int(c) for c in _tc] if _tc else None
+        self.get_logger().info(
+            f"class filter: {self.target_classes if self.target_classes else 'ALL'}"
         )
         self.half = self.get_parameter("half").get_parameter_value().bool_value
         self.max_det = self.get_parameter("max_det").get_parameter_value().integer_value
@@ -451,8 +466,7 @@ class YoloNode(LifecycleNode):
                 agnostic_nms=self.agnostic_nms,
                 retina_masks=self.retina_masks,
                 device=self.device,
-                classes=[1, 2],  # ← dead_chicken=1(죽은닭) + egg=2(계란)만. live chicken=0 제외.
-                #                    전부: classes=[0, 1, 2] / 계란만: classes=[2].
+                classes=self.target_classes,
             )
             results: Results = results[0].cpu()
 
