@@ -80,13 +80,15 @@ class YoloNode(LifecycleNode):
         self.declare_parameter("augment", False)
         self.declare_parameter("agnostic_nms", False)
         self.declare_parameter("retina_masks", False)
-        # predict() 에 넘길 클래스 필터. 빈 리스트 = 필터 없음(모델 전체 클래스).
+        # predict() 에 넘길 클래스 필터. [-1](기본) = 필터 없음(모델 전체 클래스).
+        # 음수 id 는 무시된다. ROS 2 는 빈 리스트 [] 의 타입을 추론하지 못하므로
+        # "전체" 는 [] 대신 [-1] 로 표현한다.
         # 과거 여기에 classes=[64](COCO mouse) 가 하드코딩되어 커스텀 모델이
         # 통째로 차단된 적이 있다. 모델마다 인덱스가 다르므로 **반드시 런치에서
         # 지정**하고, 코드에 숫자를 박지 않는다.
         #   robot_view_v3.pt : chicken=0, dead_chicken=1, egg=2
         #   best.pt          : egg 단일 클래스 → egg=0
-        self.declare_parameter("target_classes", [2])
+        self.declare_parameter("target_classes", [-1])
 
         self.type_to_model = {"YOLO": YOLO, "World": YOLOWorld, "YOLOE": YOLOE}
 
@@ -125,11 +127,11 @@ class YoloNode(LifecycleNode):
         self.imgsz_width = (
             self.get_parameter("imgsz_width").get_parameter_value().integer_value
         )
-        # 빈 리스트면 None 으로 넘겨 ultralytics 기본(전체 클래스) 동작을 쓴다.
-        _tc = list(
+        # 음수를 걸러 남는 게 없으면 None 으로 넘겨 ultralytics 기본(전체 클래스) 동작을 쓴다.
+        _tc = (
             self.get_parameter("target_classes").get_parameter_value().integer_array_value
         )
-        self.target_classes = [int(c) for c in _tc] if _tc else None
+        self.target_classes = [int(c) for c in _tc if c >= 0] or None
         self.get_logger().info(
             f"class filter: {self.target_classes if self.target_classes else 'ALL'}"
         )
